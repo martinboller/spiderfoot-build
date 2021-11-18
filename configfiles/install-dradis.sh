@@ -20,7 +20,7 @@
 
 
 install_prerequisites() {
-    /usr/bin/logger 'install_prerequisites' -t 'dradisce-2021-11-15';
+    /usr/bin/logger 'install_prerequisites' -t 'dradisce-2021-11-18';
     echo -e "\e[1;32m--------------------------------------------\e[0m";
     echo -e "\e[1;32mInstalling Prerequisite packages\e[0m";
     export DEBIAN_FRONTEND=noninteractive;
@@ -29,20 +29,21 @@ install_prerequisites() {
     . /etc/os-release
     OS=$NAME
     VER=$VERSION_ID
-    /usr/bin/logger "Operating System: $OS Version: $VER" -t 'dradisce-2021-11-15';
+    /usr/bin/logger "Operating System: $OS Version: $VER" -t 'dradisce-2021-11-18';
     echo -e "\e[1;32mOperating System: $OS Version: $VER\e[0m";
   # Install prerequisites
     apt-get update;
     # Install some basic tools on a Debian net install
-    /usr/bin/logger '..Install some basic tools on a Debian net install' -t 'dradisce-2021-11-15';
+    /usr/bin/logger '..Install some basic tools on a Debian net install' -t 'dradisce-2021-11-18';
     #apt-get -y install --fix-policy;
-    apt-get -y install adduser wget whois unzip apt-transport-https ca-certificates curl gnupg2 software-properties-common dnsutils \
-        iptables mysql-server mysql-client libmysqlclient-dev libfontconfig libfontconfig-dev dirmngr --install-recommends;
+    apt-get -y install adduser wget whois unzip apt-transport-https ca-certificates curl gnupg2 software-properties-common \
+        dnsutils iptables apt-get install libsqlite3-dev zlib1g-dev libfontconfig libfontconfig-dev python2 \
+        dirmngr --install-recommends;
     # Set correct locale
     locale-gen;
     update-locale;
     # Install other preferences and clean up APT
-    /usr/bin/logger '....Install some preferences on Debian and clean up APT' -t 'dradisce-2021-11-15';
+    /usr/bin/logger '....Install some preferences on Debian and clean up APT' -t 'dradisce-2021-11-18';
     apt-get -y install bash-completion sudo;
     # A little apt cleanup
     apt-get -y install --fix-missing;
@@ -51,35 +52,73 @@ install_prerequisites() {
     apt-get -y autoremove --purge;
     apt-get -y autoclean;
     apt-get -y clean;
-    /usr/bin/logger 'install_prerequisites finished' -t 'dradisce-2021-11-15';
+    /usr/bin/logger 'install_prerequisites finished' -t 'dradisce-2021-11-18';
 }
 
 install_nginx() {
-    /usr/bin/logger 'install_nginx()' -t 'dradisce-2021-11-15';
+    /usr/bin/logger 'install_nginx()' -t 'dradisce-2021-11-18';
     apt-get -y install nginx apache2-utils;
-    /usr/bin/logger 'install_nginx() finished' -t 'dradisce-2021-11-15';
+    /usr/bin/logger 'install_nginx() finished' -t 'dradisce-2021-11-18';
 }
 
 install_redis() {
-    /usr/bin/logger 'install_redis()' -t 'dradisce-2021-11-15';
+    /usr/bin/logger 'install_redis()' -t 'dradisce-2021-11-18';
     apt-get -y install redis-server;
-    /usr/bin/logger 'install_redis() finished' -t 'dradisce-2021-11-15';
+    /usr/bin/logger 'install_redis() finished' -t 'dradisce-2021-11-18';
+}
+
+install_ruby() {
+    /usr/bin/logger 'install_ruby()' -t 'dradisce-2021-11-18';
+    #apt-get -y install ruby ruby-dev;
+    curl -sSL https://rvm.io/pkuczynski.asc | gpg --import -
+    curl -sSL https://get.rvm.io | bash -s stable --ruby=2.7.2
+    source /usr/local/rvm/scripts/rvm;
+    #/usr/local/rvm/bin/rvm rubygems --force;
+    /usr/local/rvm/bin/rvm use "$(cat .ruby-version)" --default;
+    # Update the PATH environment variable
+    echo "PATH=$PATH:/usr/local/rvm/rubies/ruby-2.7.2/bin/ruby" > /etc/profile.d/dradis-ruby.sh;
+    export PATH=$PATH:/usr/local/rvm/rubies/ruby-2.7.2/bin/ruby; 
+    PATH=$PATH:/usr/local/rvm/rubies/ruby-2.7.2/bin/ruby; 
+    chmod +x /etc/profile.d/dradis-ruby.sh;
+    cd /opt/dradis-ce/;
+    source /usr/local/rvm/scripts/rvm;
+    # Allow user dradis to run rvm
+    adduser dradis rvm;
+    chown -R dradis:dradis /opt/dradis-ce/
+    su dradis -c '/usr/local/rvm/rubies/ruby-2.7.2/bin/gem install bundler:2.2.8';
+    su dradis -c '/usr/local/rvm/rubies/ruby-2.7.2/bin/bundle install';
+    su dradis -c './bin/setup';
+    # Allow acces for the host itself (proxied with nginx)
+    strServer=$(hostname -s)
+    sed -i "/Rails.application.configure do/a \  config.hosts=\"$strServer\"" /opt/dradis-ce/config/environments/production.rb
+    sed -i "/Rails.application.configure do/a \  config.hosts=\"$strServer\"" /opt/dradis-ce/config/environments/development.rb
+    #!/bin/bash
+    cat << __EOF__ > /opt/dradis-ce/run_dradis.sh
+#!/bin/bash
+cd /opt/dradis-ce/;
+source /usr/local/rvm/scripts/rvm;
+bin/rails server;
+exit 0
+__EOF__
+    chmod +x /opt/dradis-ce/run_dradis.sh;
+    cd;
+    /usr/bin/logger 'install_ruby() finished' -t 'dradisce-2021-11-18';
 }
 
 install_dradis() {    
-    /usr/bin/logger 'install_dradis()' -t 'dradisce-2021-11-15';
-    echo -e "\e[1;32mPreparing Eramba Source files\e[0m";
+    /usr/bin/logger 'install_dradis()' -t 'dradisce-2021-11-18';
+    echo -e "\e[1;32mPreparing dradis Source files\e[0m";
     mkdir -p /opt/;
     cd /opt/;
     git clone https://github.com/dradis/dradis-ce.git
     cd dradis-ce;
     ./bin/setup;
     sync;   
-    /usr/bin/logger 'install_dradis finished' -t 'dradisce-2021-11-15';
+    /usr/bin/logger 'install_dradis finished' -t 'dradisce-2021-11-18';
 }
 
 generate_certificates() {
-    /usr/bin/logger 'generate_certificates()' -t 'dradisce-2021-11-15';
+    /usr/bin/logger 'generate_certificates()' -t 'dradisce-2021-11-18';
     mkdir -p /etc/nginx/certs/;
 
     # organization name
@@ -123,7 +162,7 @@ __EOF__
     # generate self-signed certificate (remove when CSR can be sent to Corp PKI)
     openssl x509 -in /etc/nginx/certs/$HOSTNAME.csr -out /etc/nginx/certs/$HOSTNAME.crt -req -signkey /etc/nginx/certs/$HOSTNAME.key -days 365
     chmod 600 /etc/nginx/certs/$HOSTNAME.key
-    /usr/bin/logger 'generate_certificates() finished' -t 'dradisce-2021-11-15';
+    /usr/bin/logger 'generate_certificates() finished' -t 'dradisce-2021-11-18';
 }
 
 prepare_nix() {
@@ -132,7 +171,13 @@ prepare_nix() {
     # set desired locale
     localectl set-locale en_US.UTF-8;
     # Create dradis user
-    /usr/sbin/useradd --system -c "Dradis Community Edition User" --shell /bin/bash dradis;
+    /usr/sbin/useradd --system -c "Dradis Community Edition User" --home-dir /opt/dradis-ce/ --shell /bin/bash dradis;
+
+    # Configure sudoers to allow dradis
+    cat << __EOF__ > /etc/sudoers.d/dradis
+dradis     ALL = NOPASSWD: ALL
+__EOF__
+
     # Configure MOTD
     BUILDDATE=$(date +%Y-%m-%d)
     cat << __EOF__ >> /etc/motd
@@ -158,11 +203,11 @@ __EOF__
     # do not show motd twice
     sed -ie 's/session    optional     pam_motd.so  motd=\/etc\/motd/#session    optional     pam_motd.so  motd=\/etc\/motd/' /etc/pam.d/sshd
     sync;
-    /usr/bin/logger 'prepare_nix() finished' -t 'dradisce-2021-11-15';
+    /usr/bin/logger 'prepare_nix() finished' -t 'dradisce-2021-11-18';
 }
 
 start_services() {
-    /usr/bin/logger 'start_services' -t 'dradisce-2021-11-15';
+    /usr/bin/logger 'start_services' -t 'dradisce-2021-11-18';
     # Load new/changed systemd-unitfiles
     systemctl daemon-reload;
     # Enable services
@@ -171,41 +216,50 @@ start_services() {
     # Start
     systemctl restart dradisce.service;
     systemctl restart nginx;
-    /usr/bin/logger 'start_services finished' -t 'dradisce-2021-11-15';
+    /usr/bin/logger 'start_services finished' -t 'dradisce-2021-11-18';
 }
 
 check_services() {
-    /usr/bin/logger 'check_services' -t 'dradisce-2021-11-15';
+    /usr/bin/logger 'check_services' -t 'dradisce-2021-11-18';
     # Check status of critical services
     # Apache
     echo -e "\e[1;32m-----------------------------------------------------------------\e[0m";
-    echo -e "\e[1;32mChecking core daemons for Eramba......\e[0m";
+    echo -e "\e[1;32mChecking core daemons for dradis......\e[0m";
     if systemctl is-active --quiet nginx.service;
         then
             echo -e "\e[1;32mnginx webserver started successfully";
-            /usr/bin/logger 'nginx webserver started successfully' -t 'dradisce-2021-11-15';
+            /usr/bin/logger 'nginx webserver started successfully' -t 'dradisce-2021-11-18';
         else
             echo -e "\e[1;31mnginx webserver FAILED!\e[0m";
-            /usr/bin/logger 'nginx webserver FAILED' -t 'dradisce-2021-11-15';
+            /usr/bin/logger 'nginx webserver FAILED' -t 'dradisce-2021-11-18';
     fi
-    # dradisce.service.service
+    # redis.service.service
     if systemctl is-active --quiet redis-server.service;
         then
             echo -e "\e[1;32mredis service started successfully";
-            /usr/bin/logger 'redis service started successfully' -t 'dradisce-2021-11-15';
+            /usr/bin/logger 'redis service started successfully' -t 'dradisce-2021-11-18';
         else
             echo -e "\e[1;31mredis service FAILED!\e[0m";
-            /usr/bin/logger "redis service FAILED!" -t 'dradisce-2021-11-15';
+            /usr/bin/logger "redis service FAILED!" -t 'dradisce-2021-11-18';
     fi
-    /usr/bin/logger 'check_services finished' -t 'dradisce-2021-11-15';
+    # dradisce.service
+    if systemctl is-active --quiet dradisce.service;
+        then
+            echo -e "\e[1;32mDradis Server service started successfully";
+            /usr/bin/logger 'Dradis Server service started successfully' -t 'dradisce-2021-11-18';
+        else
+            echo -e "\e[1;31mDradis service FAILED!\e[0m";
+            /usr/bin/logger "Dradis service FAILED!" -t 'dradisce-2021-11-18';
+    fi
+    /usr/bin/logger 'check_services finished' -t 'dradisce-2021-11-18';
 }
 
 
 configure_nginx() {
-    /usr/bin/logger 'configure_nginx()' -t 'dradisce-2021-11-15';
+    /usr/bin/logger 'configure_nginx()' -t 'dradisce-2021-11-18';
     # Change ROOTCA to point to correct cert when/if not using self signed cert.
     export ROOTCA=$HOSTNAME
-    
+    openssl dhparam -out /etc/nginx/dhparam.pem 2048
     # TLS
     cat << __EOF__ > /etc/nginx/sites-available/default;
 #
@@ -227,7 +281,7 @@ server {
     client_max_body_size 32M;
     listen 443 ssl http2;
     ssl_certificate           /etc/nginx/certs/$HOSTNAME.crt;
-    ssl_certificate_key       /etc/elasticsearch/certs/$HOSTNAME.key;
+    ssl_certificate_key       /etc/nginx/certs/$HOSTNAME.key;
     ssl on;
     ssl_protocols TLSv1.2 TLSv1.3;
     ssl_ciphers HIGH:!aNULL:!eNULL:!EXPORT:!CAMELLIA:!DES:!MD5:!PSK:!RC4;
@@ -245,10 +299,10 @@ server {
     location / {
       # Access log for Dradis
       access_log            /var/log/nginx/dradis.access.log;
-      proxy_set_header        Host $host;
-      proxy_set_header        X-Real-IP $remote_addr;
-      proxy_set_header        X-Forwarded-For $proxy_add_x_forwarded_for;
-      proxy_set_header        X-Forwarded-Proto $scheme;
+      proxy_set_header        Host \$host;
+      proxy_set_header        X-Real-IP \$remote_addr;
+      proxy_set_header        X-Forwarded-For \$proxy_add_x_forwarded_for;
+      proxy_set_header        X-Forwarded-Proto \$scheme;
 
       # Fix the “It appears that your reverse proxy set up is broken" error.
       proxy_pass          http://localhost:3000;
@@ -267,11 +321,11 @@ server {
     }
   }
 __EOF__
-    /usr/bin/logger 'configure_nginx() finished' -t 'dradisce-2021-11-15';
+    /usr/bin/logger 'configure_nginx() finished' -t 'dradisce-2021-11-18';
 }
 
 configure_dradis() {
-    /usr/bin/logger 'configure_dradis()' -t 'dradisce-2021-11-15';
+    /usr/bin/logger 'configure_dradis()' -t 'dradisce-2021-11-18';
     cat << __EOF__  >  /lib/systemd/system/dradisce.service
 [Unit]
 Description=Dradis Community Edition
@@ -283,24 +337,23 @@ Requires=redis-server.service
 [Service]
 User=dradis
 Group=dradis
-ExecStart=/opt/dradis-ce/bin/rails server
+ExecStart=/opt/dradis-ce/run_dradis.sh
 WorkingDirectory=/opt/dradis-ce
 
 [Install]
 WantedBy=multi-user.target
 __EOF__
-
     sync;
     systemctl daemon-reload;
-    systemctl enable dradisCE.service;
-    systemctl start dradisCE.service;
-    /usr/bin/logger 'configure_dradis() finished' -t 'dradisce-2021-11-15';
+    systemctl enable dradisce.service;
+    systemctl start dradisce.service;
+    /usr/bin/logger 'configure_dradis() finished' -t 'dradisce-2021-11-18';
 }
 
 configure_permissions() {
-    /usr/bin/logger 'configure_permissions()' -t 'dradisce-2021-11-15';
+    /usr/bin/logger 'configure_permissions()' -t 'dradisce-2021-11-18';
     chown -R dradis:dradis /opt/dradis-ce/;
-    /usr/bin/logger 'configure_permissions() finished' -t 'dradisce-2021-11-15';
+    /usr/bin/logger 'configure_permissions() finished' -t 'dradisce-2021-11-18';
 }
 
 configure_iptables() {
@@ -309,7 +362,7 @@ configure_iptables() {
     echo -e "\e[32m-Creating iptables rules file\e[0m";
     cat << __EOF__  >> /etc/network/iptables.rules
 ##
-## Ruleset for Eramba Server
+## Ruleset for dradis Server
 ##
 ## IPTABLES Ruleset Author: Martin Boller 2021-11-11 v1
 
@@ -410,14 +463,30 @@ __EOF__
 }
 
 create_htpasswd() {
-    /usr/bin/logger 'create_htpasswd()' -t 'eramba';
+    /usr/bin/logger 'create_htpasswd()' -t 'dradis';
     export HT_PASSWD="$(< /dev/urandom tr -dc A-Za-z0-9 | head -c 32)"
     mkdir -p /mnt/backup/;
-    htpasswd -cb /etc/nginx/.htpasswd eramba $HT_PASSWD;
+    htpasswd -cb /etc/nginx/.htpasswd dradis $HT_PASSWD;
     echo "-------------------------------------------------------------------"  >> /mnt/backup/readme-users.txt;
-    echo "Created password for Apache $HOSTNAME     eramba:$ht_passwd"  >> /mnt/backup/readme-users.txt;
+    echo "Created password for Apache $HOSTNAME dradis:$ht_passwd"  >> /mnt/backup/readme-users.txt;
     echo "-------------------------------------------------------------------"  >> /mnt/backup/readme-users.txt;
-    /usr/bin/logger 'create_htpasswd() finished' -t 'eramba';
+    /usr/bin/logger 'create_htpasswd() finished' -t 'dradis';
+}
+
+finish_reboot() {
+    secs=10
+    echo -e;
+    echo -e "\e[1;31m--------------------------------------------\e[0m";
+        while [ $secs -gt 0 ]; do
+            echo -ne "Rebooting in: \e[1;31m$secs seconds\033[0K\r"
+            sleep 1
+            : $((secs--))
+        done;
+    sync;
+    echo -e
+    echo -e "\e[1;31mREBOOTING!\e[0m";
+    /usr/bin/logger 'finalized installation of Dradis Community Edition server' -t 'dradisce-2021-11-18'
+    reboot;
 }
 
 ##################################################################################################################
@@ -425,7 +494,7 @@ create_htpasswd() {
 ##################################################################################################################
 
 main() {
-    /usr/bin/logger 'Installing Dradis Community Edition.......' -t 'dradisce-2021-11-15';
+    /usr/bin/logger 'Installing Dradis Community Edition.......' -t 'dradisce-2021-11-18';
      # install all required elements and generate certificates for webserver
     install_prerequisites;
     prepare_nix;
@@ -433,6 +502,7 @@ main() {
     install_nginx;
     install_redis;
     install_dradis;
+    install_ruby;
     # Configure components
     configure_nginx;
     configure_dradis;
@@ -441,10 +511,12 @@ main() {
     start_services;
     configure_permissions;
     check_services;
-    /usr/bin/logger 'Dradis Community Edition Installation complete' -t 'dradisce-2021-11-15';
+    #finish_reboot;
+    /usr/bin/logger 'Dradis Community Edition Installation complete' -t 'dradisce-2021-11-18';
 }
 
 main;
+
 
 exit 0;
 

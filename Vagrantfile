@@ -5,7 +5,7 @@ Vagrant.configure("2") do |config|
     cfg.vm.box = "generic/debian11"
     cfg.vm.hostname = "wolverine"
     # change the bridged adapter to fit your systems available NIC
-    cfg.vm.network "public_network", type: "dhcp", bridge: 'enp1s0', mac: "0020911E000A"
+    cfg.vm.network "public_network", type: "dhcp", bridge: 'enp1s0', mac: "0020911E000E"
     cfg.vm.provision :file, source: './configfiles', destination: "/tmp/configfiles"
     cfg.vm.provision :shell, path: "bootstrap.sh"
 
