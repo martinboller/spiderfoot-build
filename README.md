@@ -48,6 +48,6 @@ Prerequisite: A DHCP server on the network, alternatively change the NIC to use 
  - Execute vagrant up Dradis and wait for the OS to install
 
 You may have to select which NIC to use for this e.g. wl08p01
-Logon to the website on the server https://wolverine (if you have not changed the hostname and DNS works)
+Logon to the website on the server https://wolverine (if you have not changed the hostname and DNS works. If not, use the ip address)
  
 The first install will take longer, as it needs to download the Vagrant box for Debian 11 (which this build is based on) first, however that’ll be reused in subsequent (re)installations.
