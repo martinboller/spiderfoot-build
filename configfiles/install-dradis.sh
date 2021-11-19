@@ -35,10 +35,9 @@ install_prerequisites() {
     apt-get update;
     # Install some basic tools on a Debian net install
     /usr/bin/logger '..Install some basic tools on a Debian net install' -t 'dradisce-2021-11-18';
-    #apt-get -y install --fix-policy;
-    apt-get -y install adduser wget whois unzip apt-transport-https ca-certificates curl gnupg2 software-properties-common \
-        dnsutils iptables apt-get install libsqlite3-dev zlib1g-dev libfontconfig libfontconfig-dev python2 \
-        dirmngr --install-recommends;
+    apt-get -y install adduser wget whois unzip apt-transport-https ca-certificates curl gnupg2 \
+        software-properties-common dnsutils iptables libsqlite3-dev zlib1g-dev libfontconfig libfontconfig-dev \
+        python2 dirmngr --install-recommends;
     # Set correct locale
     locale-gen;
     update-locale;
@@ -223,6 +222,7 @@ check_services() {
     /usr/bin/logger 'check_services' -t 'dradisce-2021-11-18';
     # Check status of critical services
     # Apache
+    echo -e;
     echo -e "\e[1;32m-----------------------------------------------------------------\e[0m";
     echo -e "\e[1;32mChecking core daemons for dradis......\e[0m";
     if systemctl is-active --quiet nginx.service;
@@ -251,7 +251,9 @@ check_services() {
             echo -e "\e[1;31mDradis service FAILED!\e[0m";
             /usr/bin/logger "Dradis service FAILED!" -t 'dradisce-2021-11-18';
     fi
-    /usr/bin/logger 'check_services finished' -t 'dradisce-2021-11-18';
+    echo -e "\e[1;32m-----------------------------------------------------------------\e[0m";
+    echo -e;
+   /usr/bin/logger 'check_services finished' -t 'dradisce-2021-11-18';
 }
 
 
@@ -474,18 +476,19 @@ create_htpasswd() {
 }
 
 finish_reboot() {
-    secs=10
+    secs=30
     echo -e;
-    echo -e "\e[1;31m--------------------------------------------\e[0m";
+    echo -e "\e[1;32m--------------------------------------------\e[0m";
         while [ $secs -gt 0 ]; do
-            echo -ne "Rebooting in: \e[1;31m$secs seconds\033[0K\r"
+            echo -ne "\e[1;32mRebooting in (seconds): "
+            echo -ne "\e[1;31m$secs\033[0K\r"
             sleep 1
             : $((secs--))
         done;
     sync;
     echo -e
     echo -e "\e[1;31mREBOOTING!\e[0m";
-    /usr/bin/logger 'finalized installation of Dradis Community Edition server' -t 'dradisce-2021-11-18'
+    /usr/bin/logger 'Rebooting!!' -t 'dradisce-2021-11-18'
     reboot;
 }
 
@@ -511,8 +514,11 @@ main() {
     start_services;
     configure_permissions;
     check_services;
-    #finish_reboot;
     /usr/bin/logger 'Dradis Community Edition Installation complete' -t 'dradisce-2021-11-18';
+    echo -e "\e[1;32m-----------------------------------------------------------------\e[0m";
+    echo -e "\e[1;32mDradis Community Edition Installation complete\e[0m"
+    echo -e "\e[1;32m-----------------------------------------------------------------\e[0m";
+    finish_reboot;
 }
 
 main;
