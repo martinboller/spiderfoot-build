@@ -1,11 +1,11 @@
-# Dradis Community Edition Installation script
+# SpiderFoot Installation script
 
-### Bash script automating the installation of Dradis Community Edition on Debian 11
+### Bash script automating the installation of SpiderFoot on Debian 11
 
 ## Vagrantfile and bootstrap.sh for use with Vagrant and Virtualbox
 
 ### Design principles:
-  - Dedicated to Dradis, nothing else
+  - Dedicated to SpiderFoot, nothing else
   - Use the defaults where possible
   - Least access
 
@@ -14,10 +14,10 @@
   - ~~Not tested with anything else than Debian 11 (Bullseye)~~
 
 ### Latest changes 
-#### 2021-11-18 - Initial version
+#### 2021-11-21 - Initial version
   Version 1.00
 
->**Important: Do NOT use the process below for production, as Vagrant leaves some unfortunate security artifacts behind. The install-Dradis.sh alone can be used on a known secure installation of Debian 11, or you could remove Vagrant artifacts (the former is preferred)**
+>**Important: Do NOT use the process below for production, as Vagrant leaves some unfortunate security artifacts behind. The install-SpiderFoot.sh alone can be used on a known secure installation of Debian 11, or you could remove Vagrant artifacts (the former is preferred)**
 
 ## Quick installation - If you just want to get on with it
 ### Packages required
@@ -43,11 +43,11 @@ Prerequisite: A DHCP server on the network, alternatively change the NIC to use 
  - Create a directory with ample space for Virtual Machines, e.g. /mnt/data/VMs
  - Configure VirtualBox to use that directory for Virtual Machines by default.
  - Change directory into /mnt/data/Environments/
- - Run git clone https://github.com/martinboller/dradis-build.git
- - Change directory into /mnt/data/Environments/dradis-build/
- - Execute vagrant up Dradis and wait for the OS to install
+ - Run git clone https://github.com/martinboller/sf-build.git
+ - Change directory into /mnt/data/Environments/sf-build/
+ - Execute vagrant up SpiderFoot and wait for the OS to install
 
 You may have to select which NIC to use for this e.g. wl08p01
-Logon to the website on the server https://wolverine (if you have not changed the hostname and DNS works. If not, use the ip address)
+Logon to the website on the server https://arakno (if you have not changed the hostname and DNS works. If not, use the ip address)
  
 The first install will take longer, as it needs to download the Vagrant box for Debian 11 (which this build is based on) first, however that’ll be reused in subsequent (re)installations.

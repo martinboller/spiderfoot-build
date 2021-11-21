@@ -18,9 +18,8 @@
 #                                                                           #
 #############################################################################
 
-
 install_prerequisites() {
-    /usr/bin/logger 'install_prerequisites' -t 'dradisce-2021-11-18';
+    /usr/bin/logger 'install_prerequisites' -t 'SpiderFoot-2021-11-21';
     echo -e "\e[1;32m--------------------------------------------\e[0m";
     echo -e "\e[1;32mInstalling Prerequisite packages\e[0m";
     export DEBIAN_FRONTEND=noninteractive;
@@ -29,12 +28,12 @@ install_prerequisites() {
     . /etc/os-release
     OS=$NAME
     VER=$VERSION_ID
-    /usr/bin/logger "Operating System: $OS Version: $VER" -t 'dradisce-2021-11-18';
+    /usr/bin/logger "Operating System: $OS Version: $VER" -t 'SpiderFoot-2021-11-21';
     echo -e "\e[1;32mOperating System: $OS Version: $VER\e[0m";
   # Install prerequisites
     apt-get update;
     # Install some basic tools on a Debian net install
-    /usr/bin/logger '..Install some basic tools on a Debian net install' -t 'dradisce-2021-11-18';
+    /usr/bin/logger '..Install some basic tools on a Debian net install' -t 'SpiderFoot-2021-11-21';
     apt-get -y install adduser wget whois unzip apt-transport-https ca-certificates curl gnupg2 \
         software-properties-common dnsutils iptables libsqlite3-dev zlib1g-dev libfontconfig libfontconfig-dev \
         python2 dirmngr --install-recommends;
@@ -42,7 +41,7 @@ install_prerequisites() {
     locale-gen;
     update-locale;
     # Install other preferences and clean up APT
-    /usr/bin/logger '....Install some preferences on Debian and clean up APT' -t 'dradisce-2021-11-18';
+    /usr/bin/logger '....Install some preferences on Debian and clean up APT' -t 'SpiderFoot-2021-11-21';
     apt-get -y install bash-completion sudo;
     # A little apt cleanup
     apt-get -y install --fix-missing;
@@ -51,78 +50,31 @@ install_prerequisites() {
     apt-get -y autoremove --purge;
     apt-get -y autoclean;
     apt-get -y clean;
-    /usr/bin/logger 'install_prerequisites finished' -t 'dradisce-2021-11-18';
+    /usr/bin/logger 'install_prerequisites finished' -t 'SpiderFoot-2021-11-21';
 }
 
 install_nginx() {
-    /usr/bin/logger 'install_nginx()' -t 'dradisce-2021-11-18';
+    /usr/bin/logger 'install_nginx()' -t 'SpiderFoot-2021-11-21';
     apt-get -y install nginx apache2-utils;
-    /usr/bin/logger 'install_nginx() finished' -t 'dradisce-2021-11-18';
+    /usr/bin/logger 'install_nginx() finished' -t 'SpiderFoot-2021-11-21';
 }
 
-install_redis() {
-    /usr/bin/logger 'install_redis()' -t 'dradisce-2021-11-18';
-    apt-get -y install redis-server;
-    /usr/bin/logger 'install_redis() finished' -t 'dradisce-2021-11-18';
-}
-
-install_ruby() {
-    /usr/bin/logger 'install_ruby()' -t 'dradisce-2021-11-18';
-    #apt-get -y install ruby ruby-dev;
-    curl -sSL https://rvm.io/pkuczynski.asc | gpg --import -
-    curl -sSL https://get.rvm.io | bash -s stable --ruby=2.7.2
-    source /usr/local/rvm/scripts/rvm;
-    #/usr/local/rvm/bin/rvm rubygems --force;
-    /usr/local/rvm/bin/rvm use "$(cat .ruby-version)" --default;
-    # Update the PATH environment variable
-    echo "PATH=$PATH:/usr/local/rvm/rubies/ruby-2.7.2/bin/ruby" > /etc/profile.d/dradis-ruby.sh;
-    export PATH=$PATH:/usr/local/rvm/rubies/ruby-2.7.2/bin/ruby; 
-    PATH=$PATH:/usr/local/rvm/rubies/ruby-2.7.2/bin/ruby; 
-    chmod +x /etc/profile.d/dradis-ruby.sh;
-    cd /opt/dradis-ce/;
-    source /usr/local/rvm/scripts/rvm;
-    # Allow user dradis to run rvm
-    adduser dradis rvm;
-    chown -R dradis:dradis /opt/dradis-ce/
-    su dradis -c '/usr/local/rvm/rubies/ruby-2.7.2/bin/gem install bundler:2.2.8';
-    su dradis -c '/usr/local/rvm/rubies/ruby-2.7.2/bin/bundle install';
-    su dradis -c './bin/setup';
-    # Allow acces for the host itself (proxied with nginx)
-    strServer=$(hostname -s)
-    sed -i "/Rails.application.configure do/a \  config.hosts=\"$strServer\"" /opt/dradis-ce/config/environments/production.rb
-    sed -i "/Rails.application.configure do/a \  config.hosts=\"$strServer\"" /opt/dradis-ce/config/environments/development.rb
-    #!/bin/bash
-    cat << __EOF__ > /opt/dradis-ce/run_dradis.sh
-#!/bin/bash
-cd /opt/dradis-ce/;
-source /usr/local/rvm/scripts/rvm;
-bin/rails server;
-exit 0
-__EOF__
-    chmod +x /opt/dradis-ce/run_dradis.sh;
-    cd;
-    /usr/bin/logger 'install_ruby() finished' -t 'dradisce-2021-11-18';
-}
-
-install_dradis() {    
-    /usr/bin/logger 'install_dradis()' -t 'dradisce-2021-11-18';
-    echo -e "\e[1;32mPreparing dradis Source files\e[0m";
-    mkdir -p /opt/;
+install_spiderfoot() {
+    /usr/bin/logger 'install_spiderfoot()' -t 'SpiderFoot-2021-11-21';
     cd /opt/;
-    git clone https://github.com/dradis/dradis-ce.git
-    cd dradis-ce;
-    ./bin/setup;
-    sync;   
-    /usr/bin/logger 'install_dradis finished' -t 'dradisce-2021-11-18';
+    git clone https://github.com/smicallef/spiderfoot.git;
+    cd /opt/spiderfoot/;
+    python3 -m pip install -r requirements.txt; 
+    /usr/bin/logger 'install_spiderfoot() finished' -t 'SpiderFoot-2021-11-21';
 }
 
 generate_certificates() {
-    /usr/bin/logger 'generate_certificates()' -t 'dradisce-2021-11-18';
+    /usr/bin/logger 'generate_certificates()' -t 'SpiderFoot-2021-11-21';
     mkdir -p /etc/nginx/certs/;
 
     # organization name
     # (see also https://www.switch.ch/pki/participants/)
-    export ORGNAME=dradis-ce
+    export ORGNAME=spiderfoot-ce
     # the fully qualified server (or service) name, change if other servicename than hostname
     export FQDN=$HOSTNAME;
     # Local information
@@ -161,20 +113,20 @@ __EOF__
     # generate self-signed certificate (remove when CSR can be sent to Corp PKI)
     openssl x509 -in /etc/nginx/certs/$HOSTNAME.csr -out /etc/nginx/certs/$HOSTNAME.crt -req -signkey /etc/nginx/certs/$HOSTNAME.key -days 365
     chmod 600 /etc/nginx/certs/$HOSTNAME.key
-    /usr/bin/logger 'generate_certificates() finished' -t 'dradisce-2021-11-18';
+    /usr/bin/logger 'generate_certificates() finished' -t 'SpiderFoot-2021-11-21';
 }
 
 prepare_nix() {
-    /usr/bin/logger 'prepare_nix()' -t 'gse-21.4';
+    /usr/bin/logger 'prepare_nix()' -t 'SpiderFoot-2021-11-21';
     echo -e "\e[1;32mCreating Users, configuring sudoers, and setting locale\e[0m";
     # set desired locale
     localectl set-locale en_US.UTF-8;
-    # Create dradis user
-    /usr/sbin/useradd --system -c "Dradis Community Edition User" --home-dir /opt/dradis-ce/ --shell /bin/bash dradis;
+    # Create spiderfoot user
+    /usr/sbin/useradd --system -c "SpiderFoot User" --home-dir /opt/spiderfoot-ce/ --shell /bin/bash spiderfoot;
 
-    # Configure sudoers to allow dradis
-    cat << __EOF__ > /etc/sudoers.d/dradis
-dradis     ALL = NOPASSWD: ALL
+    # Configure sudoers to allow spiderfoot
+    cat << __EOF__ > /etc/sudoers.d/spiderfoot
+spiderfoot     ALL = NOPASSWD: ALL
 __EOF__
 
     # Configure MOTD
@@ -185,10 +137,10 @@ __EOF__
         
 *******************************************
 ***                                     ***
-***        Pentest Reporting            ***
+***             OSINT                   ***
 ***    ------------------------         ***          
 ***      Automated Install              ***
-***   Dradis Community Edition          ***
+***         SpiderFoot                  ***
 ***     Build date $BUILDDATE           ***
 ***                                     ***
 ********************||*********************
@@ -196,69 +148,58 @@ __EOF__
              (•ㅅ•) ||
             /  　  づ
      Automated install v1.0
-            2021-11-15
+            2021-11-21
 
 __EOF__
     # do not show motd twice
     sed -ie 's/session    optional     pam_motd.so  motd=\/etc\/motd/#session    optional     pam_motd.so  motd=\/etc\/motd/' /etc/pam.d/sshd
     sync;
-    /usr/bin/logger 'prepare_nix() finished' -t 'dradisce-2021-11-18';
+    /usr/bin/logger 'prepare_nix() finished' -t 'SpiderFoot-2021-11-21';
 }
 
 start_services() {
-    /usr/bin/logger 'start_services' -t 'dradisce-2021-11-18';
+    /usr/bin/logger 'start_services' -t 'SpiderFoot-2021-11-21';
     # Load new/changed systemd-unitfiles
     systemctl daemon-reload;
     # Enable services
+    systemctl enable spiderfoot.service;
     systemctl enable nginx.service;
-    systemctl enable dradisce.service;
     # Start
-    systemctl restart dradisce.service;
-    systemctl restart nginx;
-    /usr/bin/logger 'start_services finished' -t 'dradisce-2021-11-18';
+    systemctl restart spiderfoot.service;
+    systemctl restart nginx.service;
+    /usr/bin/logger 'start_services finished' -t 'SpiderFoot-2021-11-21';
 }
 
 check_services() {
-    /usr/bin/logger 'check_services' -t 'dradisce-2021-11-18';
+    /usr/bin/logger 'check_services' -t 'SpiderFoot-2021-11-21';
     # Check status of critical services
-    # Apache
     echo -e;
     echo -e "\e[1;32m-----------------------------------------------------------------\e[0m";
-    echo -e "\e[1;32mChecking core daemons for dradis......\e[0m";
+    echo -e "\e[1;32mChecking core daemons for SpiderFoot......\e[0m";
     if systemctl is-active --quiet nginx.service;
         then
             echo -e "\e[1;32mnginx webserver started successfully";
-            /usr/bin/logger 'nginx webserver started successfully' -t 'dradisce-2021-11-18';
+            /usr/bin/logger 'nginx webserver started successfully' -t 'SpiderFoot-2021-11-21';
         else
             echo -e "\e[1;31mnginx webserver FAILED!\e[0m";
-            /usr/bin/logger 'nginx webserver FAILED' -t 'dradisce-2021-11-18';
+            /usr/bin/logger 'nginx webserver FAILED' -t 'SpiderFoot-2021-11-21';
     fi
-    # redis.service.service
-    if systemctl is-active --quiet redis-server.service;
+    # SpiderFoot.service.service
+    if systemctl is-active --quiet spiderfoot.service;
         then
-            echo -e "\e[1;32mredis service started successfully";
-            /usr/bin/logger 'redis service started successfully' -t 'dradisce-2021-11-18';
+            echo -e "\e[1;32mSpiderFoot service started successfully";
+            /usr/bin/logger 'SpiderFoot service started successfully' -t 'SpiderFoot-2021-11-21';
         else
-            echo -e "\e[1;31mredis service FAILED!\e[0m";
-            /usr/bin/logger "redis service FAILED!" -t 'dradisce-2021-11-18';
-    fi
-    # dradisce.service
-    if systemctl is-active --quiet dradisce.service;
-        then
-            echo -e "\e[1;32mDradis Server service started successfully";
-            /usr/bin/logger 'Dradis Server service started successfully' -t 'dradisce-2021-11-18';
-        else
-            echo -e "\e[1;31mDradis service FAILED!\e[0m";
-            /usr/bin/logger "Dradis service FAILED!" -t 'dradisce-2021-11-18';
+            echo -e "\e[1;31mSpiderFoot service FAILED!\e[0m";
+            /usr/bin/logger "SpiderFoot service FAILED!" -t 'SpiderFoot-2021-11-21';
     fi
     echo -e "\e[1;32m-----------------------------------------------------------------\e[0m";
     echo -e;
-   /usr/bin/logger 'check_services finished' -t 'dradisce-2021-11-18';
+   /usr/bin/logger 'check_services finished' -t 'SpiderFoot-2021-11-21';
 }
 
-
 configure_nginx() {
-    /usr/bin/logger 'configure_nginx()' -t 'dradisce-2021-11-18';
+    /usr/bin/logger 'configure_nginx()' -t 'SpiderFoot-2021-11-21';
     # Change ROOTCA to point to correct cert when/if not using self signed cert.
     export ROOTCA=$HOSTNAME
     openssl dhparam -out /etc/nginx/dhparam.pem 2048
@@ -268,10 +209,10 @@ configure_nginx() {
 # Changed by: Martin Boller
 #         secuuru.dk
 # Email: martin.boller@secuuru.dk
-# Last Update: 2021-11-16
+# Last Update: 2021-11-21
 #
-# reverse proxy configuration for Dradis Community Edition
-# Running Dradis on port 443 TLS
+# reverse proxy configuration for SpiderFoot
+# Running spiderfoot on port 443 TLS
 ##
 
 server {
@@ -297,65 +238,64 @@ server {
     # Diffie Hellman Parameters
     ssl_dhparam /etc/nginx/dhparam.pem;
 
-### Dradis on port 3000
+### SpiderFoot on port 5001
     location / {
-      # Access log for Dradis
-      access_log            /var/log/nginx/dradis.access.log;
+      # Access log for spiderfoot
+      access_log            /var/log/nginx/spiderfoot.access.log;
       proxy_set_header        Host \$host;
       proxy_set_header        X-Real-IP \$remote_addr;
       proxy_set_header        X-Forwarded-For \$proxy_add_x_forwarded_for;
       proxy_set_header        X-Forwarded-Proto \$scheme;
 
       # Fix the “It appears that your reverse proxy set up is broken" error.
-      proxy_pass          http://localhost:3000;
+      proxy_pass          http://localhost:5001;
       proxy_read_timeout  90;
 
-      proxy_redirect      http://localhost:3000 https://$HOSTNAME;
+      proxy_redirect      http://localhost:5001 https://$HOSTNAME;
     }
 
 ## NGINX Server status on /server-status
     location /server-status {
                         stub_status on;
                         access_log   off;
-                        auth_basic      "dradis Login";
+                        auth_basic      "spiderfoot Login";
                         auth_basic_user_file  /etc/nginx/.htpasswd;
                         allow all;
     }
   }
 __EOF__
-    /usr/bin/logger 'configure_nginx() finished' -t 'dradisce-2021-11-18';
+    /usr/bin/logger 'configure_nginx() finished' -t 'SpiderFoot-2021-11-21';
 }
 
-configure_dradis() {
-    /usr/bin/logger 'configure_dradis()' -t 'dradisce-2021-11-18';
-    cat << __EOF__  >  /lib/systemd/system/dradisce.service
+configure_spiderfoot() {
+    /usr/bin/logger 'configure_spiderfoot()' -t 'SpiderFoot-2021-11-21';
+    cat << __EOF__  >  /lib/systemd/system/spiderfoot.service
 [Unit]
-Description=Dradis Community Edition
-Documentation=https://github.com/dradis/
-Wants=network-online.target
-After=network.target network-online.target
-Requires=redis-server.service
+Description=Regular background program processing daemon
+Documentation=None
+After=networking.service
+Requires=networking.service
 
 [Service]
-User=dradis
-Group=dradis
-ExecStart=/opt/dradis-ce/run_dradis.sh
-WorkingDirectory=/opt/dradis-ce
+WorkingDirectory=/opt/spiderfoot/
+ExecStart=-/usr/bin/python3 /opt/spiderfoot/sf.py -l 0.0.0.0:5001
+KillMode=process
+Restart=on-failure
 
 [Install]
 WantedBy=multi-user.target
 __EOF__
     sync;
     systemctl daemon-reload;
-    systemctl enable dradisce.service;
-    systemctl start dradisce.service;
-    /usr/bin/logger 'configure_dradis() finished' -t 'dradisce-2021-11-18';
+    systemctl enable spiderfoot.service;
+    systemctl start spiderfoot.service;
+    /usr/bin/logger 'configure_spiderfoot() finished' -t 'SpiderFoot-2021-11-21';
 }
 
 configure_permissions() {
-    /usr/bin/logger 'configure_permissions()' -t 'dradisce-2021-11-18';
-    chown -R dradis:dradis /opt/dradis-ce/;
-    /usr/bin/logger 'configure_permissions() finished' -t 'dradisce-2021-11-18';
+    /usr/bin/logger 'configure_permissions()' -t 'SpiderFoot-2021-11-21';
+    chown -R spiderfoot:spiderfoot /opt/spiderfoot/;
+    /usr/bin/logger 'configure_permissions() finished' -t 'SpiderFoot-2021-11-21';
 }
 
 configure_iptables() {
@@ -364,7 +304,7 @@ configure_iptables() {
     echo -e "\e[32m-Creating iptables rules file\e[0m";
     cat << __EOF__  >> /etc/network/iptables.rules
 ##
-## Ruleset for dradis Server
+## Ruleset for spiderfoot Server
 ##
 ## IPTABLES Ruleset Author: Martin Boller 2021-11-11 v1
 
@@ -389,6 +329,8 @@ configure_iptables() {
 ## Allow everything on loopback
 -A INPUT -i lo -j ACCEPT
 
+## Allow access to port 5001
+##-A OUTPUT -p tcp -m tcp --dport 5001 -j ACCEPT
 ## SSH, DNS, WHOIS, DHCP ICMP - Add anything else here needed for ntp, monitoring, dhcp, icmp, updates, and ssh
 ##
 ## SSH
@@ -465,14 +407,14 @@ __EOF__
 }
 
 create_htpasswd() {
-    /usr/bin/logger 'create_htpasswd()' -t 'dradis';
+    /usr/bin/logger 'create_htpasswd()' -t 'spiderfoot';
     export HT_PASSWD="$(< /dev/urandom tr -dc A-Za-z0-9 | head -c 32)"
     mkdir -p /mnt/backup/;
-    htpasswd -cb /etc/nginx/.htpasswd dradis $HT_PASSWD;
+    htpasswd -cb /etc/nginx/.htpasswd spiderfoot $HT_PASSWD;
     echo "-------------------------------------------------------------------"  >> /mnt/backup/readme-users.txt;
-    echo "Created password for Apache $HOSTNAME dradis:$ht_passwd"  >> /mnt/backup/readme-users.txt;
+    echo "Created password for Apache $HOSTNAME spiderfoot:$ht_passwd"  >> /mnt/backup/readme-users.txt;
     echo "-------------------------------------------------------------------"  >> /mnt/backup/readme-users.txt;
-    /usr/bin/logger 'create_htpasswd() finished' -t 'dradis';
+    /usr/bin/logger 'create_htpasswd() finished' -t 'spiderfoot';
 }
 
 finish_reboot() {
@@ -488,8 +430,14 @@ finish_reboot() {
     sync;
     echo -e
     echo -e "\e[1;31mREBOOTING!\e[0m";
-    /usr/bin/logger 'Rebooting!!' -t 'dradisce-2021-11-18'
+    /usr/bin/logger 'Rebooting!!' -t 'SpiderFoot-2021-11-21'
     reboot;
+}
+
+configure_users() {
+    randompw=$(strings /dev/urandom | grep -o '[[:alnum:]]' | head -n 64 | tr -d '\n');
+    echo root:$randompw | chpasswd;
+    usermod root --lock;
 }
 
 ##################################################################################################################
@@ -497,32 +445,31 @@ finish_reboot() {
 ##################################################################################################################
 
 main() {
-    /usr/bin/logger 'Installing Dradis Community Edition.......' -t 'dradisce-2021-11-18';
+    /usr/bin/logger 'Installing spiderfoot.......' -t 'SpiderFoot-2021-11-21';
      # install all required elements and generate certificates for webserver
     install_prerequisites;
     prepare_nix;
     generate_certificates;
     install_nginx;
-    install_redis;
-    install_dradis;
-    install_ruby;
+    install_spiderfoot;
     # Configure components
     configure_nginx;
-    configure_dradis;
+    configure_spiderfoot;
     configure_iptables;
     create_htpasswd;
     start_services;
     configure_permissions;
     check_services;
-    /usr/bin/logger 'Dradis Community Edition Installation complete' -t 'dradisce-2021-11-18';
+    /usr/bin/logger 'spiderfoot Installation complete' -t 'SpiderFoot-2021-11-21';
     echo -e "\e[1;32m-----------------------------------------------------------------\e[0m";
-    echo -e "\e[1;32mDradis Community Edition Installation complete\e[0m"
+    echo -e "\e[1;32mspiderfoot Installation complete\e[0m"
+    echo -e "\e[1;32mNow restore your stored configuration to SpiderFoot or start\e[0m"
+    echo -e "\e[1;32mconfiguring it from scratch\e[0m"
     echo -e "\e[1;32m-----------------------------------------------------------------\e[0m";
     finish_reboot;
 }
 
 main;
-
 
 exit 0;
 

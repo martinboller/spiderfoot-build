@@ -8,7 +8,7 @@
 # Last Update:  2021-11-10                                          #
 # Version:      1.00                                                #
 #                                                                   #
-# Changes:      First version for wolverine (1.00)                     #
+# Changes:      First version for arakno (1.00)                     #
 #                                                                   #
 #                                                                   #
 #####################################################################
@@ -24,7 +24,7 @@ LANGUAGE=C.UTF-8
 LC_ALL=C.UTF-8
 __EOF__
   update-locale;
-  /usr/bin/logger 'configure_locale()' -t 'dradisce';
+  /usr/bin/logger 'configure_locale()' -t 'SpiderFoot';
 }
 
 configure_timezone() {
@@ -34,7 +34,7 @@ configure_timezone() {
   rm /etc/localtime;
   echo 'Etc/UTC' > /etc/timezone;
   dpkg-reconfigure -f noninteractive tzdata;
-  /usr/bin/logger 'configure_timezone()' -t 'dradisce';
+  /usr/bin/logger 'configure_timezone()' -t 'SpiderFoot';
 }
 
 apt_install_prerequisites() {
@@ -47,7 +47,7 @@ apt_install_prerequisites() {
         && apt-get -y --purge autoremove \
         && apt-get autoclean \
         && sync;
-        /usr/bin/logger 'install_updates()' -t 'dradisce';
+        /usr/bin/logger 'install_updates()' -t 'SpiderFoot';
     sed -i '/dns-nameserver/d' /etc/network/interfaces;
     ifdown eth0; ifup eth0;
     # Remove memcached on vagrant box
@@ -56,7 +56,7 @@ apt_install_prerequisites() {
     /bin/cp /tmp/configfiles/Servers/*.sh /root/;
     /bin/cp /tmp/configfiles/Servers/*.cfg /root/;
     chmod +x /root/*.sh;
-    /usr/bin/logger 'apt_install_prerequisites()' -t 'dradisce';
+    /usr/bin/logger 'apt_install_prerequisites()' -t 'SpiderFoot';
 }
 
 install_ssh_keys() {
@@ -66,18 +66,18 @@ install_ssh_keys() {
     echo "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIHJYsxpawSLfmIAZTPWdWe2xLAH758JjNs5/Z2pPWYm" | tee -a /root/.ssh/authorized_keys;
     chmod 700 /root/.ssh;
     chmod 600 /root/.ssh/authorized_keys;
-    /usr/bin/logger 'install_ssh_keys()' -t 'dradisce';
+    /usr/bin/logger 'install_ssh_keys()' -t 'SpiderFoot';
 }
 
 create_htpasswd() {
-    /usr/bin/logger 'create_htpasswd() finished' -t 'dradisce';
+    /usr/bin/logger 'create_htpasswd() finished' -t 'SpiderFoot';
     export ht_passwd="$(< /dev/urandom tr -dc A-Za-z0-9 | head -c 32)"
     mkdir -p /mnt/backup/;
     htpasswd -cb /etc/nginx/.htpasswd  $HT_PASSWD;
     echo "-------------------------------------------------------------------"  >> /mnt/backup/readme-users.txt;
     echo "Created password for Apache $HOSTNAME alerta:$ht_passwd"  >> /mnt/backup/readme-users.txt;
     echo "-------------------------------------------------------------------"  >> /mnt/backup/readme-users.txt;
-    /usr/bin/logger 'create_htpasswd() finished' -t 'dradisce';
+    /usr/bin/logger 'create_htpasswd() finished' -t 'SpiderFoot';
     systemctl restart nginx.service;
 }
 
@@ -88,7 +88,7 @@ create_htpasswd() {
 main() {
     export DOMAINNAME=bollers.dk;
     # Core elements, always installs
-    /usr/bin/logger '!!!!! Main routine starting' -t 'dradisce';
+    /usr/bin/logger '!!!!! Main routine starting' -t 'SpiderFoot';
     hostnamectl set-hostname $HOSTNAME.$DOMAINNAME;
     # Do not forget to add your own public SSH Key(s) instead of dummy in install_ssh_keys()
     install_ssh_keys;
@@ -101,7 +101,7 @@ main() {
     /bin/cp /tmp/configfiles/* /root/;
     chmod +x /root/*.sh;
     apt-get -y install --fix-policy;
-    /usr/bin/logger 'installation finished (Main routine finished)' -t 'dradisce'; 
+    /usr/bin/logger 'installation finished (Main routine finished)' -t 'SpiderFoot'; 
     su root -c '/root/install-dradis.sh';
 }
 
