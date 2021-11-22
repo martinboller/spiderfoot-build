@@ -17,6 +17,8 @@
 #### 2021-11-21 - Initial version
   Version 1.00
 
+Run the script /root/install-sf as root to install SpiderFoot on either the Vagrant lab Debian OS (see below) or any other Debian 11 platform.
+
 >**Important: Do NOT use the process below for production, as Vagrant leaves some unfortunate security artifacts behind. The install-SpiderFoot.sh alone can be used on a known secure installation of Debian 11, or you could remove Vagrant artifacts (the former is preferred)**
 
 ## Quick installation - If you just want to get on with it
@@ -46,6 +48,8 @@ Prerequisite: A DHCP server on the network, alternatively change the NIC to use 
  - Run git clone https://github.com/martinboller/sf-build.git
  - Change directory into /mnt/data/Environments/sf-build/
  - Execute vagrant up SpiderFoot and wait for the OS to install
+
+hostname: arakno (can be changed in Vagrantfile)
 
 You may have to select which NIC to use for this e.g. wl08p01
 Logon to the website on the server https://arakno (if you have not changed the hostname and DNS works. If not, use the ip address)
