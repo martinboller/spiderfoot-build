@@ -101,8 +101,15 @@ main() {
     /bin/cp /tmp/configfiles/* /root/;
     chmod +x /root/*.sh;
     apt-get -y install --fix-policy;
+    touch /root/Ready_2_Start_Install
+    echo -e "\e[1;32m------------------------------------------------------------\e[0m";
+    echo -e "\e[1;32mYou can now run ./install_sf.sh to install SpiderFoot\e[0m"
+    echo -e "\e[1;32mNote that the ROOT user will be disabled after that\e[0m"
+    echo -e "\e[1;32mLogin as spiderfoot in the future\e[0m"
+    echo -e "\e[1;32m-------------------------------------------------------------\e[0m";
+ 
     /usr/bin/logger 'installation finished (Main routine finished)' -t 'SpiderFoot'; 
-    su root -c '/root/install-dradis.sh';
+    #su root -c '/root/install-sf.sh';
 }
 
 main;

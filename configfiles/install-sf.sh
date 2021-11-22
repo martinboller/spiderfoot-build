@@ -5,7 +5,7 @@
 # Author:       Martin Boller                                               #
 #                                                                           #
 # Email:        martin                                                      #
-# Last Update:  2021-11-15                                                  #
+# Last Update:  2021-11-21                                                  #
 # Version:      1.00                                                        #
 #                                                                           #
 # Changes:      Initial Version (1.00)                                      #
@@ -36,7 +36,8 @@ install_prerequisites() {
     /usr/bin/logger '..Install some basic tools on a Debian net install' -t 'SpiderFoot-2021-11-21';
     apt-get -y install adduser wget whois unzip apt-transport-https ca-certificates curl gnupg2 \
         software-properties-common dnsutils iptables libsqlite3-dev zlib1g-dev libfontconfig libfontconfig-dev \
-        python2 dirmngr --install-recommends;
+        python3 python3-pip dirmngr --install-recommends;
+    python3 -m pip install --upgrade pip;
     # Set correct locale
     locale-gen;
     update-locale;
@@ -64,29 +65,13 @@ install_spiderfoot() {
     cd /opt/;
     git clone https://github.com/smicallef/spiderfoot.git;
     cd /opt/spiderfoot/;
-    python3 -m pip install -r requirements.txt; 
+    python3 -m pip install -r requirements.txt;
     /usr/bin/logger 'install_spiderfoot() finished' -t 'SpiderFoot-2021-11-21';
 }
 
 generate_certificates() {
     /usr/bin/logger 'generate_certificates()' -t 'SpiderFoot-2021-11-21';
     mkdir -p /etc/nginx/certs/;
-
-    # organization name
-    # (see also https://www.switch.ch/pki/participants/)
-    export ORGNAME=spiderfoot-ce
-    # the fully qualified server (or service) name, change if other servicename than hostname
-    export FQDN=$HOSTNAME;
-    # Local information
-    export ISOCOUNTRY=DK;
-    export PROVINCE=Denmark;
-    export LOCALITY=Aabenraa
-    # subjectAltName entries: to add DNS aliases to the CSR, delete
-    # the '#' character in the ALTNAMES line, and change the subsequent
-    # 'DNS:' entries accordingly. Please note: all DNS names must
-    # resolve to the same IP address as the FQDN.
-    export ALTNAMES=DNS:$HOSTNAME   # , DNS:bar.example.org , DNS:www.foo.example.org
-
     cat << __EOF__ > ./openssl.cnf
 ## Request for $FQDN
 [ req ]
@@ -121,13 +106,9 @@ prepare_nix() {
     echo -e "\e[1;32mCreating Users, configuring sudoers, and setting locale\e[0m";
     # set desired locale
     localectl set-locale en_US.UTF-8;
-    # Create spiderfoot user
-    /usr/sbin/useradd --system -c "SpiderFoot User" --home-dir /opt/spiderfoot-ce/ --shell /bin/bash spiderfoot;
 
-    # Configure sudoers to allow spiderfoot
-    cat << __EOF__ > /etc/sudoers.d/spiderfoot
-spiderfoot     ALL = NOPASSWD: ALL
-__EOF__
+    # Create spiderfoot user
+    /usr/sbin/useradd -p $(openssl passwd -1 ${spiderfoot_linux_pw}) -c "SpiderFoot User" --groups sudo --create-home --home-dir /home/spiderfoot/ --shell /bin/bash spiderfoot;
 
     # Configure MOTD
     BUILDDATE=$(date +%Y-%m-%d)
@@ -217,7 +198,7 @@ configure_nginx() {
 
 server {
     listen 80;
-    return 301 https://$host$request_uri;
+    return 301 https://\$host\$request_uri;
 }
 
 server {
@@ -240,8 +221,11 @@ server {
 
 ### SpiderFoot on port 5001
     location / {
+      # Authentication
+	  auth_basic "SpiderFoot login";
+      auth_basic_user_file /etc/nginx/.htpasswd;
       # Access log for spiderfoot
-      access_log            /var/log/nginx/spiderfoot.access.log;
+      access_log              /var/log/nginx/spiderfoot.access.log;
       proxy_set_header        Host \$host;
       proxy_set_header        X-Real-IP \$remote_addr;
       proxy_set_header        X-Forwarded-For \$proxy_add_x_forwarded_for;
@@ -277,8 +261,10 @@ After=networking.service
 Requires=networking.service
 
 [Service]
+User=spiderfoot
+Group=spiderfoot
 WorkingDirectory=/opt/spiderfoot/
-ExecStart=-/usr/bin/python3 /opt/spiderfoot/sf.py -l 0.0.0.0:5001
+ExecStart=-/usr/bin/python3 /opt/spiderfoot/sf.py -l 127.0.0.1:5001
 KillMode=process
 Restart=on-failure
 
@@ -286,9 +272,6 @@ Restart=on-failure
 WantedBy=multi-user.target
 __EOF__
     sync;
-    systemctl daemon-reload;
-    systemctl enable spiderfoot.service;
-    systemctl start spiderfoot.service;
     /usr/bin/logger 'configure_spiderfoot() finished' -t 'SpiderFoot-2021-11-21';
 }
 
@@ -313,7 +296,7 @@ configure_iptables() {
 ##
 :INPUT DROP [0:0]
 :FORWARD DROP [0:0]
-:OUTPUT DROP [0:0]
+:OUTPUT ACCEPT [0:0]
 :LOG_DROPS - [0:0]
 
 ## DROP IP fragments
@@ -330,34 +313,23 @@ configure_iptables() {
 -A INPUT -i lo -j ACCEPT
 
 ## Allow access to port 5001
-##-A OUTPUT -p tcp -m tcp --dport 5001 -j ACCEPT
+-A OUTPUT -p tcp -m tcp --dport 5001 -j ACCEPT
 ## SSH, DNS, WHOIS, DHCP ICMP - Add anything else here needed for ntp, monitoring, dhcp, icmp, updates, and ssh
 ##
 ## SSH
 -A INPUT -p tcp -m state --state NEW -m tcp --dport 22 -j ACCEPT
-## DNS
--A OUTPUT -p tcp -m tcp --dport 53 -j ACCEPT
--A OUTPUT -p udp -m udp --dport 53 -j ACCEPT
--A OUTPUT -p tcp -m tcp --dport 853 -j ACCEPT
 ## HTTP(S)
 -A INPUT -p tcp -m tcp --dport 80 -j ACCEPT
 -A INPUT -p tcp -m tcp --dport 443 -j ACCEPT
--A OUTPUT -p tcp -m tcp --dport 80 -j ACCEPT
--A OUTPUT -p tcp -m tcp --dport 443 -j ACCEPT
 ## NTP
 -A INPUT -p udp -m udp --dport 123 -j ACCEPT
--A OUTPUT -p udp -m udp --dport 123 -j ACCEPT
-## DHCP
--A OUTPUT -p udp -m udp --dport 67 -j ACCEPT
 ## ICMP
--A OUTPUT -p icmp -j ACCEPT
 -A INPUT -p icmp -j ACCEPT
 ## Already established sessions
--A OUTPUT -m state --state RELATED,ESTABLISHED -j ACCEPT
 -A INPUT -m state --state RELATED,ESTABLISHED -j ACCEPT
 
 ## Logging
--A OUTPUT -j LOG_DROPS
+-A INPUT -j LOG_DROPS
 ## get rid of broadcast noise
 -A LOG_DROPS -d 255.255.255.255 -j DROP
 # Drop Broadcast to internal networks
@@ -408,12 +380,8 @@ __EOF__
 
 create_htpasswd() {
     /usr/bin/logger 'create_htpasswd()' -t 'spiderfoot';
-    export HT_PASSWD="$(< /dev/urandom tr -dc A-Za-z0-9 | head -c 32)"
-    mkdir -p /mnt/backup/;
-    htpasswd -cb /etc/nginx/.htpasswd spiderfoot $HT_PASSWD;
-    echo "-------------------------------------------------------------------"  >> /mnt/backup/readme-users.txt;
-    echo "Created password for Apache $HOSTNAME spiderfoot:$ht_passwd"  >> /mnt/backup/readme-users.txt;
-    echo "-------------------------------------------------------------------"  >> /mnt/backup/readme-users.txt;
+    #read -s -p "Enter password for spiderfoot admin user (make this different from the Linux user created previously): " spiderfoot_pwd;
+    htpasswd -cbB /etc/nginx/.htpasswd spiderfoot $spiderfoot_web_pw;
     /usr/bin/logger 'create_htpasswd() finished' -t 'spiderfoot';
 }
 
@@ -434,39 +402,135 @@ finish_reboot() {
     reboot;
 }
 
+configure_sshd() {
+    echo -e "\e[32mconfigure_sshd()\e[0m";
+    # Disable password authN
+    echo "PasswordAuthentication no" | tee -a /etc/ssh/sshd_config
+    ## Generate new host keys
+    sync;
+}
+
+install_ssh_keys() {
+    # Echo add SSH public key for root logon
+    export DEBIAN_FRONTEND=noninteractive;
+    mkdir -p /home/spiderfoot/.ssh;
+    echo $mySSH_PublicKey | tee -a /home/spiderfoot/.ssh/authorized_keys;
+    chmod 700 /home/spiderfoot/.ssh/;
+    chmod 600 /home/spiderfoot/.ssh/authorized_keys;
+    chown -R spiderfoot:spiderfoot /home/spiderfoot/.ssh;
+    /usr/bin/logger 'install_ssh_keys()' -t 'SpiderFoot';
+}
+
 configure_users() {
     randompw=$(strings /dev/urandom | grep -o '[[:alnum:]]' | head -n 64 | tr -d '\n');
     echo root:$randompw | chpasswd;
     usermod root --lock;
 }
 
-##################################################################################################################
+################################################################################################################## 
 ## Main                                                                                                          #
 ##################################################################################################################
 
 main() {
-    /usr/bin/logger 'Installing spiderfoot.......' -t 'SpiderFoot-2021-11-21';
-     # install all required elements and generate certificates for webserver
-    install_prerequisites;
-    prepare_nix;
-    generate_certificates;
-    install_nginx;
-    install_spiderfoot;
-    # Configure components
-    configure_nginx;
-    configure_spiderfoot;
-    configure_iptables;
-    create_htpasswd;
-    start_services;
-    configure_permissions;
-    check_services;
-    /usr/bin/logger 'spiderfoot Installation complete' -t 'SpiderFoot-2021-11-21';
-    echo -e "\e[1;32m-----------------------------------------------------------------\e[0m";
-    echo -e "\e[1;32mspiderfoot Installation complete\e[0m"
-    echo -e "\e[1;32mNow restore your stored configuration to SpiderFoot or start\e[0m"
-    echo -e "\e[1;32mconfiguring it from scratch\e[0m"
-    echo -e "\e[1;32m-----------------------------------------------------------------\e[0m";
-    finish_reboot;
+    /usr/bin/logger 'Installing SpiderFoot.......' -t 'SpiderFoot-2021-11-21';
+    FILE="/SpiderFoot_Installed";
+    if ! [ -f $FILE ];
+    then
+        # install all required elements and generate certificates for webserver
+        ## SSH Public Key - change to your public key before running, the script
+        ## Only allows SSH key authentication
+        mySSH_PublicKey="ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIHJYsxpawSLfmIAZTPWdWe2xLAH758JjNs5/Z2pPWYm";
+        ## Passwords
+        ## Linux Password
+        echo
+        echo -e "\e[1;32m---------------------------------------------------------------\e[0m"
+        echo -e "\e[1;32mNow asking for passwords for Linux and Web access respectively\e[0m"
+        read -s -p "Enter password for spiderfoot Linux user: " spiderfoot_linux_pw
+        echo 
+        echo -e "\e[1;32m---------------------------------------------------------------\e[0m"
+        read -s -p "Enter password for spiderfoot Linux user (verification): " spiderfoot_linux_pw2
+        echo
+        echo -e "\e[1;32m---------------------------------------------------------------\e[0m"
+        # check if passwords match and if not ask again
+        while [ "$spiderfoot_linux_pw" != "$spiderfoot_linux_pw2" ];
+        do
+            echo
+            echo -e "\e[1;32m---------------------------------------------------------------\e[0m"
+            echo -e "\e[1;31mPasswords did not match. Please try again\e[0m"
+            read -s -p "Enter password for spiderfoot Linux user: " spiderfoot_linux_pw
+            echo
+            echo -e "\e[1;32m-----------------------------------------------------\e[0m"
+            read -s -p "Enter password for spiderfoot Linux user (verification): " spiderfoot_linux_pw2
+            echo
+            echo -e "\e[1;32m---------------------------------------------------------------\e[0m"
+        done
+        
+        ## WEB password
+        read -s -p "Enter password for spiderfoot WEB user: " spiderfoot_web_pw
+        echo
+        echo -e "\e[1;32m---------------------------------------------------------------\e[0m"
+        read -s -p "Enter password for spiderfoot WEB user (verification): " spiderfoot_web_pw2
+        # check if passwords match and if not ask again
+        while [ "$spiderfoot_web_pw" != "$spiderfoot_web_pw2" ];
+        do
+            echo
+            echo -e "\e[1;32m---------------------------------------------------------------\e[0m"
+            echo -e "\e[1;31mPasswords did not match. Please try again\e[0m"
+            read -s -p "Enter password for spiderfoot WEB user: " spiderfoot_web_pw
+            echo
+            echo -e "\e[1;32m---------------------------------------------------------------\e[0m"
+            read -s -p "Enter password for spiderfoot WEB user (verification): " spiderfoot_web_pw2
+            echo
+            echo -e "\e[1;32m---------------------------------------------------------------\e[0m"
+        done
+
+        ## Required information for certificates
+        # organization name
+        # (see also https://www.switch.ch/pki/participants/)
+        export ORGNAME=SpiderFoot
+        # the fully qualified server (or service) name, change if other servicename than hostname
+        export FQDN=$HOSTNAME;
+        # Local information
+        export ISOCOUNTRY=DK;
+        export PROVINCE=Denmark;
+        export LOCALITY=Aabenraa
+        # subjectAltName entries: to add DNS aliases to the CSR, delete
+        # the '#' character in the ALTNAMES line, and change the subsequent
+        # 'DNS:' entries accordingly. Please note: all DNS names must
+        # resolve to the same IP address as the FQDN.
+        export ALTNAMES=DNS:$HOSTNAME   # , DNS:bar.example.org , DNS:www.foo.example.org
+        ## Start actual installation
+        install_prerequisites;
+        prepare_nix;
+        install_nginx;
+        create_htpasswd;
+        configure_nginx;
+        generate_certificates;
+        install_spiderfoot;
+        # Configure components
+        configure_spiderfoot;
+        configure_sshd;
+        configure_iptables;
+        start_services;
+        configure_permissions;
+        install_ssh_keys;
+        configure_users;
+        check_services;
+        /usr/bin/logger 'spiderfoot Installation complete' -t 'SpiderFoot-2021-11-21';
+        echo -e "\e[1;32m-----------------------------------------------------------------\e[0m";
+        echo -e "\e[1;32mspiderfoot Installation complete\e[0m"
+        echo -e "\e[1;32mNow restore your stored configuration to SpiderFoot or start\e[0m"
+        echo -e "\e[1;32mconfiguring it from scratch\e[0m"
+        echo -e "\e[1;32m-----------------------------------------------------------------\e[0m";
+        touch /SpiderFoot_Installed;
+        finish_reboot;
+    else
+        echo -e "\e[1;31m-----------------------------------------------------------------\e[0m";
+        echo -e "\e[1;31mIt appears that SpiderFoot has already been installed\e[0m"
+        echo -e "\e[1;31mIf this is in error, or you just want to install again, then\e[0m"
+        echo -e "\e[1;31mdelete the file /SpiderFoot_Installed and run the script again\e[0m"
+        echo -e "\e[1;31m-----------------------------------------------------------------\e[0m";
+    fi
 }
 
 main;
