@@ -108,7 +108,7 @@ prepare_nix() {
     localectl set-locale en_US.UTF-8;
 
     # Create spiderfoot user
-    /usr/sbin/useradd -p $(openssl passwd -1 ${spiderfoot_linux_pw}) -c "SpiderFoot User" --groups sudo --create-home --home-dir /home/spiderfoot/ --shell /bin/bash spiderfoot;
+    /usr/sbin/useradd -p $(openssl passwd -1 ${spiderfoot_linux_pw}) -c "SpiderFoot User" --groups sudo --create-home --shell /bin/bash spiderfoot;
 
     # Configure MOTD
     BUILDDATE=$(date +%Y-%m-%d)
