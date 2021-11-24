@@ -342,7 +342,7 @@ COMMIT
 __EOF__
 
 # ipv6 rules
-    cat << __EOF__  >> /etc/network/iptables.rules
+    cat << __EOF__  >> /etc/network/ip6tables.rules
 ##
 ## Ruleset for spiderfoot Server
 ##
