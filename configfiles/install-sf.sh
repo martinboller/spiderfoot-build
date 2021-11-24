@@ -36,7 +36,7 @@ install_prerequisites() {
     /usr/bin/logger '..Install some basic tools on a Debian net install' -t 'SpiderFoot-2021-11-21';
     apt-get -y install adduser wget whois unzip apt-transport-https ca-certificates curl gnupg2 \
         software-properties-common dnsutils iptables libsqlite3-dev zlib1g-dev libfontconfig libfontconfig-dev \
-        python3 python3-pip dirmngr --install-recommends;
+        python3 python3-pip git dirmngr --install-recommends;
     python3 -m pip install --upgrade pip;
     # Set correct locale
     locale-gen;
