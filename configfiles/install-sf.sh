@@ -34,10 +34,9 @@ install_prerequisites() {
     apt-get update;
     # Install some basic tools on a Debian net install
     /usr/bin/logger '..Install some basic tools on a Debian net install' -t 'SpiderFoot-2021-11-21';
-    apt-get -y install adduser wget whois unzip apt-transport-https ca-certificates curl gnupg2 \
+    apt-get -y install adduser wget whois unzip apt-transport-https ca-certificates curl gnupg2 sudo \
         software-properties-common dnsutils iptables libsqlite3-dev zlib1g-dev libfontconfig libfontconfig-dev \
-        python3 python3-pip git dirmngr --install-recommends;
-    python3 -m pip install --upgrade pip;
+        python3 python3-pip python3-venv git dirmngr --install-recommends;
     # Set correct locale
     locale-gen;
     update-locale;
@@ -64,8 +63,13 @@ install_spiderfoot() {
     /usr/bin/logger 'install_spiderfoot()' -t 'SpiderFoot-2021-11-21';
     cd /opt/;
     git clone https://github.com/smicallef/spiderfoot.git;
+    chown spiderfoot:spiderfoot ./spiderfoot;
+    su spiderfoot bash -c 'python3 -m pip install --upgrade pip';
+    su spiderfoot bash -c 'python3 -m pip install --user virtualenv';
+    su spiderfoot bash -c 'python3 -m venv spiderfoot';
     cd /opt/spiderfoot/;
-    python3 -m pip install --ignore-installed -r requirements.txt;
+    su spiderfoot bash -c 'source bin/activate';
+    su spiderfoot bash -c 'python3 -m pip install --ignore-installed -r requirements.txt';
     /usr/bin/logger 'install_spiderfoot() finished' -t 'SpiderFoot-2021-11-21';
 }
 
@@ -264,6 +268,7 @@ Requires=networking.service
 User=spiderfoot
 Group=spiderfoot
 WorkingDirectory=/opt/spiderfoot/
+Environment=PYTHONPATH=/opt/spiderfoot/
 ExecStart=-/usr/bin/python3 /opt/spiderfoot/sf.py -l 127.0.0.1:5001
 KillMode=process
 Restart=on-failure
