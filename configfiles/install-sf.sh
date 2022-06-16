@@ -65,7 +65,7 @@ install_spiderfoot() {
     cd /opt/;
     git clone https://github.com/smicallef/spiderfoot.git;
     cd /opt/spiderfoot/;
-    python3 -m pip install -r requirements.txt;
+    python3 -m pip install --ignore-installed -r requirements.txt;
     /usr/bin/logger 'install_spiderfoot() finished' -t 'SpiderFoot-2021-11-21';
 }
 
