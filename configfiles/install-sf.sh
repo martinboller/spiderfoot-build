@@ -19,7 +19,7 @@
 #############################################################################
 
 install_prerequisites() {
-    /usr/bin/logger 'install_prerequisites' -t 'SpiderFoot-2021-11-21';
+    /usr/bin/logger 'install_prerequisites' -t 'SpiderFoot-2022-06-16';
     echo -e "\e[1;32m--------------------------------------------\e[0m";
     echo -e "\e[1;32mInstalling Prerequisite packages\e[0m";
     export DEBIAN_FRONTEND=noninteractive;
@@ -28,12 +28,12 @@ install_prerequisites() {
     . /etc/os-release
     OS=$NAME
     VER=$VERSION_ID
-    /usr/bin/logger "Operating System: $OS Version: $VER" -t 'SpiderFoot-2021-11-21';
+    /usr/bin/logger "Operating System: $OS Version: $VER" -t 'SpiderFoot-2022-06-16';
     echo -e "\e[1;32mOperating System: $OS Version: $VER\e[0m";
   # Install prerequisites
     apt-get update;
     # Install some basic tools on a Debian net install
-    /usr/bin/logger '..Install some basic tools on a Debian net install' -t 'SpiderFoot-2021-11-21';
+    /usr/bin/logger '..Install some basic tools on a Debian net install' -t 'SpiderFoot-2022-06-16';
     apt-get -y install adduser wget whois unzip apt-transport-https ca-certificates curl gnupg2 sudo \
         software-properties-common dnsutils iptables libsqlite3-dev zlib1g-dev libfontconfig libfontconfig-dev \
         python3 python3-pip python3-venv git dirmngr --install-recommends;
@@ -41,7 +41,7 @@ install_prerequisites() {
     locale-gen;
     update-locale;
     # Install other preferences and clean up APT
-    /usr/bin/logger '....Install some preferences on Debian and clean up APT' -t 'SpiderFoot-2021-11-21';
+    /usr/bin/logger '....Install some preferences on Debian and clean up APT' -t 'SpiderFoot-2022-06-16';
     apt-get -y install bash-completion sudo;
     # A little apt cleanup
     apt-get -y install --fix-missing;
@@ -50,17 +50,17 @@ install_prerequisites() {
     apt-get -y autoremove --purge;
     apt-get -y autoclean;
     apt-get -y clean;
-    /usr/bin/logger 'install_prerequisites finished' -t 'SpiderFoot-2021-11-21';
+    /usr/bin/logger 'install_prerequisites finished' -t 'SpiderFoot-2022-06-16';
 }
 
 install_nginx() {
-    /usr/bin/logger 'install_nginx()' -t 'SpiderFoot-2021-11-21';
+    /usr/bin/logger 'install_nginx()' -t 'SpiderFoot-2022-06-16';
     apt-get -y install nginx apache2-utils;
-    /usr/bin/logger 'install_nginx() finished' -t 'SpiderFoot-2021-11-21';
+    /usr/bin/logger 'install_nginx() finished' -t 'SpiderFoot-2022-06-16';
 }
 
 install_spiderfoot() {
-    /usr/bin/logger 'install_spiderfoot()' -t 'SpiderFoot-2021-11-21';
+    /usr/bin/logger 'install_spiderfoot()' -t 'SpiderFoot-2022-06-16';
     cd /opt/;
     git clone https://github.com/smicallef/spiderfoot.git;
     chown spiderfoot:spiderfoot ./spiderfoot;
@@ -70,11 +70,33 @@ install_spiderfoot() {
     cd /opt/spiderfoot/;
     su spiderfoot bash -c 'source bin/activate';
     su spiderfoot bash -c 'python3 -m pip install --ignore-installed -r requirements.txt';
-    /usr/bin/logger 'install_spiderfoot() finished' -t 'SpiderFoot-2021-11-21';
+    /usr/bin/logger 'install_spiderfoot() finished' -t 'SpiderFoot-2022-06-16';
+}
+
+letsencrypt_certificates() {
+    /usr/bin/logger 'letsencrypt_certificates()' -t 'SpiderFoot-2022-06-16';
+    echo -e "\e[1;32m - letsencrypt_certificates()"
+
+     echo -e "\e[1;36m ... installing certbot\e[0m";
+    apt-get -y -qq install certbot python3-certbot-apache > /dev/null 2>&1
+    sync;
+
+    # Start certbot'ing
+    echo -e "\e[1;36m ... running certbot\e[0m";
+    certbot run -n --agree-tos --apache -m $mailaddress --domains $fqdn
+
+    echo -e "\e[1;36m ... creating cron job for automatic renewal of certificates\e[0m";
+        cat << __EOF__ > /etc/cron.weekly/certbot
+#!/bin/sh
+/usr/bin/certbot renew
+__EOF__
+    chmod 755 /etc/cron.weekly/certbot > /dev/null 2>&1
+    echo -e "\e[1;32m - letsencrypt_certificates() finished"
+    /usr/bin/logger 'letsencrypt_certificates() finished' -t 'SpiderFoot-2022-06-16';
 }
 
 generate_certificates() {
-    /usr/bin/logger 'generate_certificates()' -t 'SpiderFoot-2021-11-21';
+    /usr/bin/logger 'generate_certificates()' -t 'SpiderFoot-2022-06-16';
     mkdir -p /etc/nginx/certs/;
     cat << __EOF__ > ./openssl.cnf
 ## Request for $FQDN
@@ -102,11 +124,11 @@ __EOF__
     # generate self-signed certificate (remove when CSR can be sent to Corp PKI)
     openssl x509 -in /etc/nginx/certs/$HOSTNAME.csr -out /etc/nginx/certs/$HOSTNAME.crt -req -signkey /etc/nginx/certs/$HOSTNAME.key -days 365
     chmod 600 /etc/nginx/certs/$HOSTNAME.key
-    /usr/bin/logger 'generate_certificates() finished' -t 'SpiderFoot-2021-11-21';
+    /usr/bin/logger 'generate_certificates() finished' -t 'SpiderFoot-2022-06-16';
 }
 
 prepare_nix() {
-    /usr/bin/logger 'prepare_nix()' -t 'SpiderFoot-2021-11-21';
+    /usr/bin/logger 'prepare_nix()' -t 'SpiderFoot-2022-06-16';
     echo -e "\e[1;32mCreating Users, configuring sudoers, and setting locale\e[0m";
     # set desired locale
     localectl set-locale en_US.UTF-8;
@@ -139,11 +161,11 @@ __EOF__
     # do not show motd twice
     sed -ie 's/session    optional     pam_motd.so  motd=\/etc\/motd/#session    optional     pam_motd.so  motd=\/etc\/motd/' /etc/pam.d/sshd
     sync;
-    /usr/bin/logger 'prepare_nix() finished' -t 'SpiderFoot-2021-11-21';
+    /usr/bin/logger 'prepare_nix() finished' -t 'SpiderFoot-2022-06-16';
 }
 
 start_services() {
-    /usr/bin/logger 'start_services' -t 'SpiderFoot-2021-11-21';
+    /usr/bin/logger 'start_services' -t 'SpiderFoot-2022-06-16';
     # Load new/changed systemd-unitfiles
     systemctl daemon-reload;
     # Enable services
@@ -152,11 +174,11 @@ start_services() {
     # Start
     systemctl restart spiderfoot.service;
     systemctl restart nginx.service;
-    /usr/bin/logger 'start_services finished' -t 'SpiderFoot-2021-11-21';
+    /usr/bin/logger 'start_services finished' -t 'SpiderFoot-2022-06-16';
 }
 
 check_services() {
-    /usr/bin/logger 'check_services' -t 'SpiderFoot-2021-11-21';
+    /usr/bin/logger 'check_services' -t 'SpiderFoot-2022-06-16';
     # Check status of critical services
     echo -e;
     echo -e "\e[1;32m-----------------------------------------------------------------\e[0m";
@@ -164,27 +186,27 @@ check_services() {
     if systemctl is-active --quiet nginx.service;
         then
             echo -e "\e[1;32mnginx webserver started successfully";
-            /usr/bin/logger 'nginx webserver started successfully' -t 'SpiderFoot-2021-11-21';
+            /usr/bin/logger 'nginx webserver started successfully' -t 'SpiderFoot-2022-06-16';
         else
             echo -e "\e[1;31mnginx webserver FAILED!\e[0m";
-            /usr/bin/logger 'nginx webserver FAILED' -t 'SpiderFoot-2021-11-21';
+            /usr/bin/logger 'nginx webserver FAILED' -t 'SpiderFoot-2022-06-16';
     fi
     # SpiderFoot.service.service
     if systemctl is-active --quiet spiderfoot.service;
         then
             echo -e "\e[1;32mSpiderFoot service started successfully";
-            /usr/bin/logger 'SpiderFoot service started successfully' -t 'SpiderFoot-2021-11-21';
+            /usr/bin/logger 'SpiderFoot service started successfully' -t 'SpiderFoot-2022-06-16';
         else
             echo -e "\e[1;31mSpiderFoot service FAILED!\e[0m";
-            /usr/bin/logger "SpiderFoot service FAILED!" -t 'SpiderFoot-2021-11-21';
+            /usr/bin/logger "SpiderFoot service FAILED!" -t 'SpiderFoot-2022-06-16';
     fi
     echo -e "\e[1;32m-----------------------------------------------------------------\e[0m";
     echo -e;
-   /usr/bin/logger 'check_services finished' -t 'SpiderFoot-2021-11-21';
+   /usr/bin/logger 'check_services finished' -t 'SpiderFoot-2022-06-16';
 }
 
 configure_nginx() {
-    /usr/bin/logger 'configure_nginx()' -t 'SpiderFoot-2021-11-21';
+    /usr/bin/logger 'configure_nginx()' -t 'SpiderFoot-2022-06-16';
     # Change ROOTCA to point to correct cert when/if not using self signed cert.
     export ROOTCA=$HOSTNAME
     openssl dhparam -out /etc/nginx/dhparam.pem 2048
@@ -252,11 +274,11 @@ server {
     }
   }
 __EOF__
-    /usr/bin/logger 'configure_nginx() finished' -t 'SpiderFoot-2021-11-21';
+    /usr/bin/logger 'configure_nginx() finished' -t 'SpiderFoot-2022-06-16';
 }
 
 configure_spiderfoot() {
-    /usr/bin/logger 'configure_spiderfoot()' -t 'SpiderFoot-2021-11-21';
+    /usr/bin/logger 'configure_spiderfoot()' -t 'SpiderFoot-2022-06-16';
     cat << __EOF__  >  /lib/systemd/system/spiderfoot.service
 [Unit]
 Description=Regular background program processing daemon
@@ -277,13 +299,13 @@ Restart=on-failure
 WantedBy=multi-user.target
 __EOF__
     sync;
-    /usr/bin/logger 'configure_spiderfoot() finished' -t 'SpiderFoot-2021-11-21';
+    /usr/bin/logger 'configure_spiderfoot() finished' -t 'SpiderFoot-2022-06-16';
 }
 
 configure_permissions() {
-    /usr/bin/logger 'configure_permissions()' -t 'SpiderFoot-2021-11-21';
+    /usr/bin/logger 'configure_permissions()' -t 'SpiderFoot-2022-06-16';
     chown -R spiderfoot:spiderfoot /opt/spiderfoot/;
-    /usr/bin/logger 'configure_permissions() finished' -t 'SpiderFoot-2021-11-21';
+    /usr/bin/logger 'configure_permissions() finished' -t 'SpiderFoot-2022-06-16';
 }
 
 configure_iptables() {
@@ -451,7 +473,7 @@ finish_reboot() {
     sync;
     echo -e
     echo -e "\e[1;31mREBOOTING!\e[0m";
-    /usr/bin/logger 'Rebooting!!' -t 'SpiderFoot-2021-11-21'
+    /usr/bin/logger 'Rebooting!!' -t 'SpiderFoot-2022-06-16'
     reboot;
 }
 
@@ -485,7 +507,7 @@ configure_users() {
 ##################################################################################################################
 
 main() {
-    /usr/bin/logger 'Installing SpiderFoot.......' -t 'SpiderFoot-2021-11-21';
+    /usr/bin/logger 'Installing SpiderFoot.......' -t 'SpiderFoot-2022-06-16';
     FILE="/SpiderFoot_Installed";
     if ! [ -f $FILE ];
     then
@@ -558,7 +580,9 @@ main() {
         install_nginx;
         create_htpasswd;
         configure_nginx;
-        generate_certificates;
+        # If public, uncomment letsencrypt_certificates otherwise use generate_certificates for self-signed
+        letsencrypt_certificates;
+        #generate_certificates;
         install_spiderfoot;
         # Configure components
         configure_spiderfoot;
@@ -569,7 +593,7 @@ main() {
         install_ssh_keys;
         configure_users;
         check_services;
-        /usr/bin/logger 'spiderfoot Installation complete' -t 'SpiderFoot-2021-11-21';
+        /usr/bin/logger 'spiderfoot Installation complete' -t 'SpiderFoot-2022-06-16';
         echo -e "\e[1;32m-----------------------------------------------------------------\e[0m";
         echo -e "\e[1;32mspiderfoot Installation complete\e[0m"
         echo -e "\e[1;32mNow restore your stored configuration to SpiderFoot or start\e[0m"
