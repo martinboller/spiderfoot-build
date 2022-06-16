@@ -78,12 +78,12 @@ letsencrypt_certificates() {
     echo -e "\e[1;32m - letsencrypt_certificates()"
 
      echo -e "\e[1;36m ... installing certbot\e[0m";
-    apt-get -y -qq install certbot python3-certbot-apache > /dev/null 2>&1
+    apt-get -y -qq install certbot python3-certbot-nginx > /dev/null 2>&1
     sync;
 
     # Start certbot'ing
     echo -e "\e[1;36m ... running certbot\e[0m";
-    certbot run -n --agree-tos --apache -m $mailaddress --domains $fqdn
+    certbot run -n --agree-tos --nginx -m $mailaddress --domains $fqdn
 
     echo -e "\e[1;36m ... creating cron job for automatic renewal of certificates\e[0m";
         cat << __EOF__ > /etc/cron.weekly/certbot
@@ -257,7 +257,7 @@ server {
       proxy_set_header        X-Forwarded-For \$proxy_add_x_forwarded_for;
       proxy_set_header        X-Forwarded-Proto \$scheme;
 
-      # Fix the “It appears that your reverse proxy set up is broken" error.
+      # Fix the - It appears that your reverse proxy set up is broken - error.
       proxy_pass          http://localhost:5001;
       proxy_read_timeout  90;
 
@@ -559,6 +559,12 @@ main() {
             echo -e "\e[1;32m---------------------------------------------------------------\e[0m"
         done
 
+        # Change the mailaddress below to reflect your mail-address
+        readonly mailaddress="noc@bollers.dk"
+        # CERT_TYPE can be Self-Signed or LetsEncrypt (internet connected, thus also installing crowdsec)
+        readonly CERT_TYPE="Self-Signed"
+        readonly fqdn="$(hostname --fqdn)"
+        readonly HOSTNAME_ONLY="$(hostname --short)"
         ## Required information for certificates
         # organization name
         # (see also https://www.switch.ch/pki/participants/)
@@ -581,8 +587,8 @@ main() {
         create_htpasswd;
         configure_nginx;
         # If public, uncomment letsencrypt_certificates otherwise use generate_certificates for self-signed
+        generate_certificates;
         letsencrypt_certificates;
-        #generate_certificates;
         install_spiderfoot;
         # Configure components
         configure_spiderfoot;
